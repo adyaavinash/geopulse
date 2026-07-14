@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "id": "04848f4f680744f9",
+  "theme": "chokepoint_hormuz",
+  "score": 8.42,
+  "source_types": [
+    "news",
+    "market"
+  ],
+  "window_minutes": 60,
+  "triggered_at": "2026-07-14T06:26:09.783769Z",
+  "sample_record_ids": [
+    "3f9c1a7b2e8d4c5a6b7f8e9d"
+  ],
+  "contributing_series": {
+    "news:chokepoint_hormuz:volume": 8.42,
+    "market:^VIX:close": 3.1
+  },
+  "is_synthetic": false,
+  "query": null
+}

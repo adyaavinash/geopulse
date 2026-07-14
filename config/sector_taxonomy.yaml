@@ -1,0 +1,16 @@
+# GICS sectors -> investable ETF proxies (backtesting universe)
+sectors:
+  energy:            {etf: XLE,  beta_prior: high_cyclical}
+  defense_aerospace: {etf: ITA,  beta_prior: event_driven}
+  financials:        {etf: XLF,  beta_prior: high_cyclical}
+  airlines:          {etf: JETS, beta_prior: high_cyclical}
+  semiconductors:    {etf: SMH,  beta_prior: high_beta}
+  materials:         {etf: XLB,  beta_prior: cyclical}
+  industrials:       {etf: XLI,  beta_prior: cyclical}
+  consumer_staples:  {etf: XLP,  beta_prior: defensive}
+  consumer_disc:     {etf: XLY,  beta_prior: high_cyclical}
+  utilities:         {etf: XLU,  beta_prior: defensive}
+  health_care:       {etf: XLV,  beta_prior: defensive}
+  technology:        {etf: XLK,  beta_prior: high_beta}
+  gold:              {etf: GLD,  beta_prior: safe_haven}
+  gold_miners:       {etf: GDX,  beta_prior: safe_haven}
