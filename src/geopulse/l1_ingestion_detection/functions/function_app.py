@@ -58,12 +58,11 @@ def _ingest_and_detect(collector, source_type: str) -> None:
         store.save_records(fresh)
     logger.info("%s: %d fetched, %d new", source_type, len(records), len(fresh))
 
+    # check() already gates on cooldown internally and persists the signal
+    # (for future cooldown lookups) before returning it — do not re-check
+    # recent_signal_exists here, it would always match the signal just saved.
     signal: AnomalySignal | None = detector.check(source_type=source_type, records=fresh)
     if signal is None:
-        return
-
-    if store.recent_signal_exists(signal.theme, within_minutes=60):
-        logger.info("Suppressing duplicate anomaly for theme=%s", signal.theme)
         return
 
     bus.publish_anomaly(signal)
