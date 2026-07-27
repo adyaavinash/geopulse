@@ -35,14 +35,19 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s
 logger = logging.getLogger("geopulse.run")
 
 
-def build():
+def build(with_queue: bool = True):
+    """Wire up the local pipeline. ``with_queue=False`` skips constructing the
+    QueueBus entirely — no Azurite connection, no create-queue retries, no noise
+    — for runs that never publish (ingest-only polls, replay)."""
     s = get_settings()
     store = get_store(s)
-    return s, store, Deduplicator(store), AnomalyDetector(store, s), QueueBus(s)
+    bus = QueueBus(s) if with_queue else None
+    return s, store, Deduplicator(store), AnomalyDetector(store, s), bus
 
 
 def poll_once(publish: bool = True) -> None:
-    s, store, dedupe, detector, bus = build()
+    # Only touch the queue when we actually intend to publish.
+    s, store, dedupe, detector, bus = build(with_queue=publish)
     jobs = [
         (GdeltCollector(s), "news"),
         (RssCollector(s), "news"),
@@ -84,7 +89,7 @@ def replay(theme: str, start: str, days: int) -> None:
     strict as-of cutoff and report when (if) the composite gate would fire.
     News-only replay: pair with a synthetic VIX series or lower
     composite_min_source_types to 1 for the news-leg-only assertion."""
-    s, store, _, detector, _ = build()
+    s, store, _, detector, _ = build(with_queue=False)   # replay never publishes
     start_dt = datetime.fromisoformat(start).replace(tzinfo=timezone.utc)
 
     gdelt = GdeltCollector(s)
@@ -121,7 +126,9 @@ def replay(theme: str, start: str, days: int) -> None:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("once")
+    op = sub.add_parser("once")
+    op.add_argument("--no-publish", action="store_true",
+                    help="ingest to the store only; skip the queue (no Azurite needed)")
     sub.add_parser("loop")
     sub.add_parser("drain")
     rp = sub.add_parser("replay")
@@ -131,7 +138,7 @@ if __name__ == "__main__":
     args = ap.parse_args()
 
     if args.cmd == "once":
-        poll_once()
+        poll_once(publish=not args.no_publish)
     elif args.cmd == "loop":
         loop()
     elif args.cmd == "drain":
