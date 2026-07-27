@@ -1,0 +1,120 @@
+# Seed event-study corpus for the Analogy agent (Node 4, agentic RAG).
+#
+# ⚠️  ILLUSTRATIVE SEED DATA. The `measured_returns` below are representative,
+# hand-entered approximations so the RAG pipeline is demonstrable end-to-end.
+# Person 4's analysis/event_study.py + abnormal_returns.py replace these with
+# real event-window abnormal returns computed from prices. Treat magnitudes as
+# directionally indicative, not precise.
+#
+# Fields per event:
+#   id, title, date, category (event_taxonomy), region, commodities,
+#   summary (what gets embedded for similarity search),
+#   window_days (the event study horizon),
+#   measured_returns: ETF -> % abnormal return over the window (matches
+#                     sector_taxonomy proxies so Node 5's chains cross-reference).
+
+events:
+  - id: abqaiq_2019
+    title: "Abqaiq–Khurais drone strike on Saudi oil facilities"
+    date: 2019-09-14
+    category: armed_conflict
+    region: middle_east
+    commodities: [crude, jet_fuel]
+    window_days: 5
+    summary: >
+      Drone and missile strikes knocked out ~5% of global crude supply at
+      Saudi Aramco's Abqaiq processing plant. Brent spiked ~15% intraday, the
+      largest jump on record; escalation premium in defense, pressure on fuel
+      consumers.
+    measured_returns: {XLE: 3.6, ITA: 1.4, GLD: 1.1, GDX: 2.0, JETS: -2.9, XLY: -0.8}
+
+  - id: hormuz_tanker_2019
+    title: "Gulf of Oman tanker attacks near the Strait of Hormuz"
+    date: 2019-06-13
+    category: chokepoint_disruption
+    region: strait_of_hormuz
+    commodities: [crude, tanker_rates]
+    window_days: 5
+    summary: >
+      Two tankers attacked in the Gulf of Oman raised fears of Strait of Hormuz
+      disruption; crude and tanker rates jumped on shipping-insurance and
+      chokepoint-closure risk.
+    measured_returns: {XLE: 2.1, ITA: 0.9, GLD: 0.7, JETS: -1.6, XLB: -0.7}
+
+  - id: iran_sanctions_2018
+    title: "US withdrawal from JCPOA and reimposition of Iran oil sanctions"
+    date: 2018-05-08
+    category: statecraft
+    region: middle_east
+    commodities: [crude, trade_friction]
+    window_days: 10
+    summary: >
+      The US exited the Iran nuclear deal and reimposed sanctions on Iranian oil
+      exports, tightening supply expectations and raising compliance/trade
+      friction for exposed exporters.
+    measured_returns: {XLE: 2.4, ITA: 1.0, JETS: -1.1, SMH: -0.9}
+
+  - id: suez_ever_given_2021
+    title: "Ever Given blocks the Suez Canal"
+    date: 2021-03-23
+    category: chokepoint_disruption
+    region: suez
+    commodities: [crude, tanker_rates]
+    window_days: 6
+    summary: >
+      The container ship Ever Given grounded and blocked the Suez Canal for six
+      days, halting ~12% of global trade and lifting tanker/freight rates and
+      crude on rerouting fears.
+    measured_returns: {XLE: 1.8, XLI: -0.6, JETS: -1.0, XLB: -0.5}
+
+  - id: russia_ukraine_2022
+    title: "Russian invasion of Ukraine"
+    date: 2022-02-24
+    category: armed_conflict
+    region: europe
+    commodities: [crude, gas, wheat, jet_fuel]
+    window_days: 10
+    summary: >
+      Full-scale invasion triggered energy and commodity supply shock, a broad
+      risk-off move, safe-haven flows to gold, and a surge in defense spending
+      expectations across NATO members.
+    measured_returns: {XLE: 9.2, ITA: 4.3, GLD: 3.1, GDX: 5.0, JETS: -6.4, XLK: -5.1, XLY: -4.0}
+
+  - id: covid_crash_2020
+    title: "COVID-19 market crash"
+    date: 2020-03-09
+    category: financial_shock
+    region: global
+    commodities: [vix, credit_spreads]
+    window_days: 15
+    summary: >
+      Pandemic lockdowns drove a historic equity crash and VIX spike. High-beta
+      and levered sectors sold off hardest; defensive/low-beta and safe havens
+      outperformed on a relative basis.
+    measured_returns: {XLP: -8.0, XLU: -12.0, GLD: -2.0, XLF: -30.0, JETS: -45.0, SMH: -22.0, XLK: -18.0}
+
+  - id: svb_collapse_2023
+    title: "Silicon Valley Bank collapse and regional banking stress"
+    date: 2023-03-10
+    category: financial_shock
+    region: united_states
+    commodities: [credit_spreads, vix]
+    window_days: 7
+    summary: >
+      SVB's failure sparked a regional-bank run and credit-spread widening;
+      financials sold off while gold and rate-sensitive defensives caught a
+      safe-haven bid.
+    measured_returns: {XLF: -11.0, GLD: 6.0, XLU: 1.5, XLP: 0.8, SMH: -3.0}
+
+  - id: chip_export_controls_2022
+    title: "US semiconductor export controls on China"
+    date: 2022-10-07
+    category: statecraft
+    region: asia_pacific
+    commodities: [trade_friction, compliance_cost]
+    window_days: 10
+    summary: >
+      Sweeping US export controls restricted advanced-chip and equipment sales
+      to China, hitting semiconductor revenue exposure and raising supply-chain
+      rerouting and compliance costs.
+    measured_returns: {SMH: -6.5, XLK: -3.2, ITA: 0.6, XLF: -1.4}

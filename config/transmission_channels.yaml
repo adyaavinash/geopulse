@@ -1,6 +1,7 @@
 # Seed causal graph: the whiteboard's "graph -> Regs -> cause -> etc".
 # Transmission reasoner walks these edges; every verdict hop must cite one.
 oil_supply_shock:
+  applies_to: [chokepoint_disruption, armed_conflict]   # event_taxonomy categories
   raises: [crude, tanker_rates, gold, jet_fuel]
   sectors_up: [energy, defense_aerospace, gold, gold_miners]
   sectors_down: [airlines, consumer_disc, materials]
@@ -8,6 +9,7 @@ oil_supply_shock:
     Supply disruption -> crude spike -> input-cost passthrough hits fuel
     consumers; escalation premium lifts defense; safe-haven flows lift gold.
 regulatory_sanctions:
+  applies_to: [statecraft]
   raises: [compliance_cost, trade_friction]
   sectors_up: [defense_aerospace]
   sectors_down: [semiconductors, financials, industrials]
@@ -15,6 +17,7 @@ regulatory_sanctions:
     Regs -> export/finance restrictions -> revenue loss for exposed
     exporters and banks -> supply-chain rerouting costs.
 equity_crash_contagion:
+  applies_to: [financial_shock]
   raises: [vix, credit_spreads]
   sectors_up: [consumer_staples, utilities, health_care, gold]
   sectors_down: [financials, airlines, semiconductors, consumer_disc, technology]

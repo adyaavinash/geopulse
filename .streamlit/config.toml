@@ -1,0 +1,14 @@
+# GeoPulse — house theme (warm parchment + amber), shared with the compliance UI.
+[theme]
+base = "light"
+primaryColor = "#cf861b"            # amber accent
+backgroundColor = "#faf8f4"         # warm cream page
+secondaryBackgroundColor = "#fffdfa" # cards / sidebar (paper)
+textColor = "#1a1712"               # warm ink
+font = "sans serif"
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false
