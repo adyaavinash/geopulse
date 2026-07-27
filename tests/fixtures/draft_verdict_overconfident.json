@@ -1,0 +1,15 @@
+{
+  "event_id": "evt_chokepoint_hormuz_20260714",
+  "theme": "chokepoint_hormuz",
+  "calls": [
+    {
+      "sector": "energy",
+      "direction": "winner",
+      "confidence": 0.9,
+      "rationale": "Hormuz closure should push oil prices up, benefiting energy names.",
+      "cited_transmission_edge": null,
+      "cited_analogy_ids": []
+    }
+  ],
+  "overall_confidence": 0.9
+}
