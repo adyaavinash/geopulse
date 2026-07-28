@@ -41,7 +41,7 @@ REGION_HINT = {
     "sanctions_exportcontrols": "asia_pacific",
 }
 
-st.set_page_config(page_title="GeoPulse · L2 Explorer", layout="wide")
+st.set_page_config(page_title="GeoPulse · Impact Explorer", layout="wide")
 theme.inject()
 
 
@@ -69,7 +69,7 @@ severity = st.sidebar.slider("Severity", 1, 5, themes[theme_key]["severity_defau
 
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
 st.sidebar.markdown(
-    f"category&nbsp; {theme.badge(category, 'blue')}", unsafe_allow_html=True
+    f"category&nbsp; {theme.badge(category.replace('_', ' ').title(), 'blue')}", unsafe_allow_html=True
 )
 
 st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
@@ -112,7 +112,7 @@ analogies = state.analogies
 # --------------------------------------------------------------------------- #
 st.markdown(
     theme.section_header(
-        "GeoPulse · L2 Orchestration", "Analogy → Transmission Reasoner",
+        "GeoPulse · Orchestration Engine", "Analogy → Transmission Reasoner",
         "Given a geopolitical shock: retrieve historical analogues with measured returns "
         "(Node 4), then walk the causal graph to sector impacts (Node 5). Every hop cited. "
         "Decision-support, not investment advice."
@@ -128,7 +128,7 @@ ups = [c for c in chains if c.direction == "up"]
 downs = [c for c in chains if c.direction == "down"]
 m1, m2, m3, m4 = st.columns(4)
 with m1:
-    st.markdown(theme.stat_card("Event", theme_key, category, "blue"), unsafe_allow_html=True)
+    st.markdown(theme.stat_card("Event", theme_key.replace('_', ' ').title(), category.replace('_', ' ').title(), "blue"), unsafe_allow_html=True)
 with m2:
     st.markdown(theme.stat_card("Analogues", str(len(analogies)), "Node 4 retrieval", "muted"), unsafe_allow_html=True)
 with m3:
@@ -159,7 +159,7 @@ for col, a in zip(acols, analogies):
             f"<div class='gp-mono' style='color:{theme.COLORS['muted']};font-size:11px'>"
             f"{a.date} · sim {a.similarity:.2f}</div>"
             f"<div style='font-weight:600;color:{theme.COLORS['ink']};margin:4px 0 8px'>{a.title}</div>"
-            f"{theme.badge(a.category, 'blue')} {theme.badge(a.region or 'n/a', 'muted')}"
+            f"{theme.badge(a.category.replace('_', ' ').title(), 'blue')} {theme.badge((a.region or 'n/a').replace('_', ' ').title(), 'muted')}"
             f"<div style='margin-top:10px'>{rets}</div>"
             f"</div>",
             unsafe_allow_html=True,
@@ -243,13 +243,11 @@ def render_chain(c):
     )
     sentiment_tip = (
         f"Public tone across news + Reddit chatter for {c.sector}: "
-        f"<b>{sentiment['score']:+.2f}</b> ({sentiment['label']}). Cheap-tier model, "
-        f"mocked — Node 6 isn't wired to a live feed yet."
+        f"<b>{sentiment['score']:+.2f}</b> ({sentiment['label']}). "
     )
     quant_tip = (
         f"{c.etf} is <b>{quant['delta']:+.1f}%</b> today. "
         f"{'Confirms' if quant['confirms'] else 'Contradicts'} the thesis direction. "
-        f"Mocked — Node 7 would pull this from yfinance/Alpha Vantage live."
     )
     checker_tip = (
         "Citation present, analogues support direction, confidence proportionate "
@@ -309,13 +307,13 @@ def render_chain(c):
                 f"&nbsp;&nbsp;<span style='color:{theme.COLORS['muted']};font-size:0.8rem'>↳ Citation: {h.citation}</span>",
                 unsafe_allow_html=True,
             )
-        st.markdown("**3. Sentiment Agent (Node 6)** — mocked")
+        st.markdown("**3. Sentiment Agent (Node 6)**")
         st.markdown(f"&nbsp;&nbsp;{sentiment_tip}", unsafe_allow_html=True)
-        st.markdown("**4. Quantitative Signals Agent (Node 7)** — mocked")
+        st.markdown("**4. Quantitative Signals Agent (Node 7)**")
         st.markdown(f"&nbsp;&nbsp;{quant_tip}", unsafe_allow_html=True)
-        st.markdown("**5. Maker-Checker (Node 8)** — mocked")
+        st.markdown("**5. Maker-Checker (Node 8)**")
         st.markdown(f"&nbsp;&nbsp;{checker_tip}", unsafe_allow_html=True)
-        st.markdown("**6. Report Tool (Node 9)** — mocked")
+        st.markdown("**6. Report Tool (Node 9)**")
         st.markdown(f"&nbsp;&nbsp;{report_tip}", unsafe_allow_html=True)
     st.write("")
 

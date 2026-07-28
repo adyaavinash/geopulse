@@ -130,6 +130,7 @@ hr { border-color:var(--line); }
 .gp-badge {
   font-family:'IBM Plex Mono', monospace; font-size:10px; font-weight:600;
   letter-spacing:.4px; padding:3px 8px; border-radius:7px; display:inline-block;
+  max-width:100%; white-space:normal; overflow-wrap:normal; word-break:normal; vertical-align:bottom;
 }
 .gp-card {
   background: rgba(255, 253, 250, 0.85);
@@ -137,7 +138,7 @@ hr { border-color:var(--line); }
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(0,0,0,0.06);
   border-radius: 16px;
-  padding: 24px 28px;
+  padding: 18px 18px;
   min-height: 140px;
   box-shadow: 0 4px 24px rgba(0,0,0,.03), 0 1px 3px rgba(0,0,0,.02);
   margin-bottom: 20px;
@@ -230,7 +231,7 @@ hr { border-color:var(--line); }
 .gp-ticker-item b { color: var(--ink); font-weight:600; }
 
 /* Stat card internals */
-.gp-stat-value { font-family:'Space Grotesk',sans-serif; font-size:24px; font-weight:700; color:var(--ink); line-height:1.2; word-break: break-word; margin-top: 6px;}
+.gp-stat-value { font-family:'Space Grotesk',sans-serif; font-size:20px; font-weight:700; color:var(--ink); line-height:1.2; white-space:normal; word-break:normal; overflow-wrap:normal; margin-top: 6px;}
 .gp-stat-delta { font-size:12px; font-family:'IBM Plex Mono', monospace; margin-top:8px; white-space: normal; line-height: 1.4; }
 .gp-stat-row { display:flex; align-items:center; justify-content:space-between; gap:16px; width: 100%;}
 .gp-stat-row > div:first-child { flex: 1 1 auto; min-width: 0; padding-right: 12px; }
@@ -336,8 +337,9 @@ def render_sidebar():
     """Renders the custom sidebar with the brand at the top and styled navigation links."""
     st.sidebar.markdown(brand(size=28), unsafe_allow_html=True)
     st.sidebar.markdown(kicker("Navigation"), unsafe_allow_html=True)
+    st.sidebar.write("")
     st.sidebar.page_link("dashboard.py", label="Command Center")
-    st.sidebar.page_link("pages/1_Transmission_Explorer.py", label="L2 Explorer")
+    st.sidebar.page_link("pages/1_Transmission_Explorer.py", label="Impact Explorer")
     st.sidebar.page_link("pages/2_Backtest_Simulation.py", label="Backtest Alpha")
     st.sidebar.markdown("<div class='gp-rule'></div>", unsafe_allow_html=True)
     st.sidebar.markdown(
