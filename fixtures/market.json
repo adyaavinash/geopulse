@@ -1,0 +1,10 @@
+[
+  {"source": "yfinance", "source_type": "market", "title": "^VIX close", "metadata": {"ticker": "^VIX", "close": 19.4}},
+  {"source": "yfinance", "source_type": "market", "title": "XLE close", "metadata": {"ticker": "XLE", "close": 82.4}},
+  {"source": "yfinance", "source_type": "market", "title": "ITA close", "metadata": {"ticker": "ITA", "close": 145.2}},
+  {"source": "yfinance", "source_type": "market", "title": "JETS close", "metadata": {"ticker": "JETS", "close": 20.4}},
+  {"source": "yfinance", "source_type": "market", "title": "GLD close", "metadata": {"ticker": "GLD", "close": 231.7}},
+  {"source": "yfinance", "source_type": "market", "title": "XLB close", "metadata": {"ticker": "XLB", "close": 88.1}},
+  {"source": "yfinance", "source_type": "market", "title": "XLF close", "metadata": {"ticker": "XLF", "close": 44.6}},
+  {"source": "yfinance", "source_type": "market", "title": "SMH close", "metadata": {"ticker": "SMH", "close": 231.9}}
+]

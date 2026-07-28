@@ -161,3 +161,10 @@ class GraphState(BaseModel):
             self.evidence_log.extend(delta.evidence)
         self.token_spend += delta.token_spend
         return self
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """Dict-like accessor so callers (e.g. the Functions queue trigger in
+        l1_ingestion_detection/functions/function_app.py, which does
+        ``final_state.get("verdict")``) can treat the returned state like a
+        plain result mapping without every caller needing a pydantic import."""
+        return getattr(self, key, default)
