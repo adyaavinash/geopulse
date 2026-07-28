@@ -53,7 +53,6 @@ _CSS = """
     var(--page);
 }
 .block-container { padding-top: 3rem; max-width: 1280px; }
-[data-testid="stHeader"] { display: none !important; }
 
 /* Force light-base text colors (belt-and-suspenders if base theme misloads) */
 .stApp, .stMarkdown, .stMarkdown p, .stMarkdown li { color: var(--text); }
