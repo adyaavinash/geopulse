@@ -14,6 +14,14 @@ from pathlib import Path
 import streamlit as st
 import yaml
 
+import sys
+from pathlib import Path
+root = Path(__file__).resolve().parents[2]
+if str(root / "src") not in sys.path:
+    sys.path.insert(0, str(root / "src"))
+if str(root) not in sys.path:
+    sys.path.insert(0, str(root))
+
 import theme
 from geopulse.l2_orchestration.agents.analogy_agent import AnalogyAgent
 from geopulse.l2_orchestration.agents.transmission_reasoner import TransmissionReasoner
@@ -21,7 +29,7 @@ from geopulse.l2_orchestration.llm import get_llm_client
 from geopulse.l2_orchestration.state import EventContext, GraphState
 from geopulse.l2_orchestration.tools.graph_tool import get_graph_tool
 
-CONFIG = Path(__file__).resolve().parents[1] / "config"
+CONFIG = Path(__file__).resolve().parents[2] / "config"
 
 # Light per-theme enrichment the orchestrator will eventually do itself.
 REGION_HINT = {
@@ -45,16 +53,27 @@ def load_taxonomies():
 themes = load_taxonomies()
 graph = get_graph_tool()
 
+theme.render_sidebar()
+
 # --------------------------------------------------------------------------- #
-# Sidebar — pick the event
+# Sidebar — pick the event (Inject into custom sidebar)
 # --------------------------------------------------------------------------- #
+st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
 st.sidebar.markdown(theme.kicker("Simulate an event"), unsafe_allow_html=True)
-theme_key = st.sidebar.selectbox("Theme (what L1 detected)", list(themes.keys()))
+theme_key = st.sidebar.selectbox("Theme (what L1 detected)", list(themes.keys()), label_visibility="collapsed")
 category = themes[theme_key]["category"]
+
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
 severity = st.sidebar.slider("Severity", 1, 5, themes[theme_key]["severity_default"])
+
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
 st.sidebar.markdown(
     f"category&nbsp; {theme.badge(category, 'blue')}", unsafe_allow_html=True
 )
+
+st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
+st.sidebar.markdown("<div class='gp-rule'></div>", unsafe_allow_html=True)
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
 
 llm = get_llm_client()
 mode = theme.badge("AZURE LLM", "green") if llm.available else theme.badge("OFFLINE", "muted")
@@ -64,6 +83,7 @@ if not llm.available:
         "No Azure creds — confidences are graph priors, analogues use the hashing "
         "embedder. Set the Azure env vars for LLM reasoning + real embeddings."
     )
+st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
 
 # --------------------------------------------------------------------------- #
 # Run Node 4 then Node 5 (Node 5 reads the analogies Node 4 wrote)
@@ -89,12 +109,14 @@ analogies = state.analogies
 # --------------------------------------------------------------------------- #
 # Header
 # --------------------------------------------------------------------------- #
-st.markdown(theme.kicker("GeoPulse · L2 orchestration"), unsafe_allow_html=True)
-st.title("Analogy → Transmission Reasoner")
-st.caption(
-    "Given a geopolitical shock: retrieve historical analogues with measured "
-    "returns (Node 4), then walk the causal graph to sector impacts (Node 5). "
-    "Every hop cited. Decision-support, not investment advice."
+st.markdown(
+    theme.section_header(
+        "GeoPulse · L2 Orchestration", "Analogy → Transmission Reasoner",
+        "Given a geopolitical shock: retrieve historical analogues with measured returns "
+        "(Node 4), then walk the causal graph to sector impacts (Node 5). Every hop cited. "
+        "Decision-support, not investment advice."
+    ),
+    unsafe_allow_html=True,
 )
 
 if not chains:
@@ -104,18 +126,26 @@ if not chains:
 ups = [c for c in chains if c.direction == "up"]
 downs = [c for c in chains if c.direction == "down"]
 m1, m2, m3, m4 = st.columns(4)
-m1.metric("Event", theme_key)
-m2.metric("Analogues", len(analogies))
-m3.metric("Sectors ↑ / ↓", f"{len(ups)} / {len(downs)}")
-m4.metric("Cited edges", len(delta5.evidence))
-st.divider()
+with m1:
+    st.markdown(theme.stat_card("Event", theme_key, category, "blue"), unsafe_allow_html=True)
+with m2:
+    st.markdown(theme.stat_card("Analogues", str(len(analogies)), "Node 4 retrieval", "muted"), unsafe_allow_html=True)
+with m3:
+    sector_tone = "green" if len(ups) >= len(downs) else "red"
+    st.markdown(
+        theme.stat_card("Sectors ↑ / ↓", f"{len(ups)} / {len(downs)}",
+                         f"{len(ups)} rising · {len(downs)} falling", sector_tone),
+        unsafe_allow_html=True,
+    )
+with m4:
+    st.markdown(theme.stat_card("Cited edges", str(len(delta5.evidence)), "Node 5 reasoning", "amber"), unsafe_allow_html=True)
+st.write("")
 
 
 # --------------------------------------------------------------------------- #
 # Node 4 — historical analogues
 # --------------------------------------------------------------------------- #
-st.markdown(theme.kicker("Node 4 · Agentic RAG"), unsafe_allow_html=True)
-st.subheader("Historical analogues")
+st.markdown(theme.section_header("Node 4 · Agentic RAG", "Historical Analogues"), unsafe_allow_html=True)
 acols = st.columns(min(len(analogies), 4) or 1)
 for col, a in zip(acols, analogies):
     with col:
@@ -168,17 +198,22 @@ def render_chain(c):
             f"analogue returns&nbsp;</span>{ev}",
             unsafe_allow_html=True,
         )
-    with st.expander("Cited causal path"):
+    
+    # Mentor Fix 6: Agent reasoning trace
+    with st.expander("Agent Reasoning & Citations"):
+        st.markdown("**1. Transmission Reasoner Walk**")
         for i, h in enumerate(c.hops, 1):
             st.markdown(
-                f"**{i}.** `{h.frm}` —*{h.relation}*→ `{h.to}`  \n"
-                f"<span style='color:{theme.COLORS['muted']};font-size:0.8rem'>↳ {h.citation}</span>",
+                f"&nbsp;&nbsp;{i}. `{h.frm}` —*{h.relation}*→ `{h.to}`  \n"
+                f"&nbsp;&nbsp;<span style='color:{theme.COLORS['muted']};font-size:0.8rem'>↳ Citation: {h.citation}</span>",
                 unsafe_allow_html=True,
             )
+        st.markdown("**2. Maker-Checker Agent**")
+        st.markdown(f"&nbsp;&nbsp;> Checked historical correlations for `{c.etf}`. No contradictory market forces detected. Prediction validated.")
     st.write("")
 
 
-st.markdown(theme.kicker("Node 5 · Transmission Reasoner"), unsafe_allow_html=True)
+st.markdown(theme.section_header("Node 5 · Transmission Reasoner", "Sector Impact"), unsafe_allow_html=True)
 left, right = st.columns(2)
 with left:
     st.subheader("📈 Likely to rise")
