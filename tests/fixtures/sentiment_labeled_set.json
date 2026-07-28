@@ -1,0 +1,30 @@
+{
+  "_readme": "Hand-labeled sentiment examples for testing Agent 6 (sentiment_agent.py) scorer accuracy. `label` is the expected bucket given score_text()'s [-1,+1] output using the SAME threshold the agent itself uses (see sentiment_agent._stance_from_score: <= -0.15 negative-ish/'confirm', >= 0.15 positive-ish/'contradict', else neutral). `category` marks known-easy vs. known-hard cases for the lexicon scorer so a low overall score doesn't obscure WHERE it's weak.",
+  "examples": [
+    {"text": "Missile strikes hit tankers near the strait, panic spreads across markets", "label": "negative", "category": "clean_negative"},
+    {"text": "Ceasefire agreement reached, tensions ease as both sides step back", "label": "positive", "category": "clean_positive"},
+    {"text": "Oil markets in selloff amid closure threat, no relief in sight", "label": "negative", "category": "clean_negative"},
+    {"text": "Shipping lanes reopened after officials reached a deal to de-escalate", "label": "positive", "category": "clean_positive"},
+    {"text": "Analysts issued a routine quarterly earnings report for the retail sector", "label": "neutral", "category": "clean_neutral"},
+    {"text": "The weather forecast calls for mild temperatures across the region this week", "label": "neutral", "category": "clean_neutral"},
+    {"text": "This is not an escalation, officials insist the situation remains calm", "label": "positive", "category": "negation"},
+    {"text": "The blockade was not lifted, and no relief has arrived for stranded vessels", "label": "negative", "category": "negation"},
+    {"text": "There is no crisis here, the region has fully stabilized", "label": "positive", "category": "negation"},
+    {"text": "Talks did not lead to a ceasefire, and the attacks continued overnight", "label": "negative", "category": "negation"},
+    {"text": "Oh great, ANOTHER missile strike, exactly what the markets needed today", "label": "negative", "category": "sarcasm"},
+    {"text": "Sure, nothing says 'stable region' like a full blockade of the strait", "label": "negative", "category": "sarcasm"},
+    {"text": "Wonderful news: another selloff, another crisis, another sleepless night for traders", "label": "negative", "category": "sarcasm"},
+    {"text": "Markets calmed after the strike, though officials warn the ceasefire is fragile and could collapse", "label": "neutral", "category": "mixed"},
+    {"text": "The attack caused an initial panic, but a swift agreement helped prices recover", "label": "neutral", "category": "mixed"},
+    {"text": "While the invasion escalated fighting, a surprise deal eased fears of a wider war", "label": "neutral", "category": "mixed"},
+    {"text": "My cat knocked a plant off the windowsill this morning", "label": "neutral", "category": "off_topic"},
+    {"text": "The local bakery introduced a new sourdough recipe this week", "label": "neutral", "category": "off_topic"},
+    {"text": "Investors welcomed the news as talks resumed and the deal moved toward approval", "label": "positive", "category": "clean_positive"},
+    {"text": "Casualties reported after the strike as the crisis deepens further", "label": "negative", "category": "clean_negative"},
+    {"text": "A stabilized ceasefire and reopened border crossing brought calm to the region", "label": "positive", "category": "clean_positive"},
+    {"text": "The embargo triggered a collapse in exports and a deepening economic crisis", "label": "negative", "category": "clean_negative"},
+    {"text": "It isn't a de-escalation at all, the mobilization is only accelerating", "label": "negative", "category": "negation"},
+    {"text": "The strait remains open with no disruption reported so far today", "label": "neutral", "category": "negation"},
+    {"text": "Great, just what we needed: a 'stabilized' market that's actually in freefall", "label": "negative", "category": "sarcasm"}
+  ]
+}

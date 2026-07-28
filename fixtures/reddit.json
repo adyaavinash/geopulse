@@ -1,0 +1,34 @@
+[
+  {
+    "source": "reddit:geopolitics",
+    "source_type": "social",
+    "url": "https://reddit.com/r/geopolitics/comments/sample1",
+    "title": "Missile strikes near the Strait of Hormuz spark panic in oil markets",
+    "text": "Reports of explosions near tanker routes overnight. Analysts warn of a broader blockade if this escalates further.",
+    "metadata": {"subreddit": "geopolitics", "score": 812, "num_comments": 203}
+  },
+  {
+    "source": "reddit:geopolitics",
+    "source_type": "social",
+    "url": "https://reddit.com/r/geopolitics/comments/sample2",
+    "title": "Ceasefire talks reported to be progressing, officials say tensions easing",
+    "text": "Diplomatic sources suggest a deal may be reached within days, which would help stabilize shipping lanes.",
+    "metadata": {"subreddit": "geopolitics", "score": 455, "num_comments": 98}
+  },
+  {
+    "source": "reddit:wallstreetbets",
+    "source_type": "social",
+    "url": "https://reddit.com/r/wallstreetbets/comments/sample3",
+    "title": "Oil markets in full selloff mode as Hormuz closure fears grow",
+    "text": "This is not looking good. Energy futures are all over the place and nobody knows what happens next.",
+    "metadata": {"subreddit": "wallstreetbets", "score": 1204, "num_comments": 560}
+  },
+  {
+    "source": "reddit:stocks",
+    "source_type": "social",
+    "url": "https://reddit.com/r/stocks/comments/sample4",
+    "title": "Weekly earnings thread — post your questions here",
+    "text": "Routine weekly thread for discussing upcoming earnings reports across sectors.",
+    "metadata": {"subreddit": "stocks", "score": 60, "num_comments": 40}
+  }
+]
