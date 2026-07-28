@@ -235,6 +235,54 @@ hr { border-color:var(--line); }
 .gp-stat-row { display:flex; align-items:center; justify-content:space-between; gap:16px; width: 100%;}
 .gp-stat-row > div:first-child { flex: 1 1 auto; min-width: 0; padding-right: 12px; }
 .gp-stat-row > div:last-child { flex: 0 0 auto; }
+
+/* Agent chips — hover reveals a per-agent explanation (no JS, pure CSS) */
+.gp-agent-row { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 4px; }
+.gp-agent-chip {
+  position:relative; display:inline-flex; align-items:center; gap:6px;
+  font-family:'IBM Plex Mono', monospace; font-size:11px; font-weight:600;
+  letter-spacing:.2px; padding:5px 10px 5px 8px; border-radius:8px; cursor:help;
+  border:1px solid; user-select:none;
+}
+.gp-agent-chip .gp-chip-icon { font-size:12px; line-height:1; }
+.gp-agent-chip .gp-tooltip {
+  visibility:hidden; opacity:0; position:absolute; bottom:135%; left:50%;
+  transform:translateX(-50%) translateY(4px);
+  background:var(--ink); color:var(--paper); text-align:left;
+  padding:11px 13px; border-radius:10px; width:250px; z-index:80;
+  font-family:'Space Grotesk',sans-serif; font-weight:400; font-size:12.5px; line-height:1.5;
+  box-shadow:0 12px 32px rgba(0,0,0,.22);
+  transition:opacity .15s ease, transform .15s ease, visibility .15s ease;
+}
+.gp-agent-chip .gp-tooltip b { color:var(--paper); font-weight:700; }
+.gp-agent-chip .gp-tooltip::after {
+  content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+  border:6px solid transparent; border-top-color:var(--ink);
+}
+.gp-agent-chip:hover .gp-tooltip { visibility:visible; opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* "Why" synthesis callout — the orchestrator's reconciled rationale */
+.gp-why-box {
+  background: linear-gradient(180deg, rgba(207,134,27,.05), rgba(207,134,27,0));
+  border:1px solid rgba(207,134,27,.25); border-left:3px solid var(--amber);
+  border-radius:10px; padding:12px 14px; margin:10px 0 4px;
+  font-size:13px; color:var(--text); line-height:1.55;
+}
+.gp-why-box .gp-why-label {
+  font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:700; letter-spacing:.6px;
+  text-transform:uppercase; color:var(--amber); display:block; margin-bottom:5px;
+}
+
+/* Source ingestion cards */
+.gp-source-card {
+  background:var(--paper); border:1px solid var(--line); border-radius:14px;
+  padding:14px 16px; box-shadow:0 1px 3px rgba(0,0,0,.04);
+  display:flex; flex-direction:column; gap:6px; height:100%;
+}
+.gp-source-head { display:flex; align-items:center; justify-content:space-between; }
+.gp-source-name { display:flex; align-items:center; gap:8px; font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:13px; color:var(--ink); }
+.gp-source-count { font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:22px; color:var(--ink); }
+.gp-source-meta { font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--muted); }
 </style>
 """
 
@@ -443,6 +491,45 @@ def line_chart_svg(x_labels: list, series: dict, width: int = 900, height: int =
     )
     legend_html = f"<div style='margin-top:6px'>{''.join(legend)}</div>" if show_legend else ""
     return f"<div>{svg}{legend_html}</div>"
+
+
+def agent_chip(icon: str, name: str, status: str, tone: str, tooltip_html: str) -> str:
+    """One agent's contribution to a sector call — a compact chip whose hover
+    reveals the agent's specific reasoning. tooltip_html may contain <b> tags."""
+    color = COLORS.get(tone, tone)
+    return (
+        f"<span class='gp-agent-chip' style='color:{color};background:{color}12;border-color:{color}40'>"
+        f"<span class='gp-chip-icon'>{icon}</span>{name} · {status}"
+        f"<span class='gp-tooltip'>{tooltip_html}</span>"
+        f"</span>"
+    )
+
+
+def agent_row(chips: list) -> str:
+    return f"<div class='gp-agent-row'>{''.join(chips)}</div>"
+
+
+def why_box(label: str, text: str) -> str:
+    """The orchestrator's reconciled, plain-English rationale for one call."""
+    return (
+        f"<div class='gp-why-box'><span class='gp-why-label'>{label}</span>{text}</div>"
+    )
+
+
+def source_card(icon: str, name: str, count: str, meta: str, tone: str = "amber",
+                 spark_values=None) -> str:
+    """One ingestion source's activity card (Reddit/Twitter/GDELT/etc.)."""
+    spark_html = sparkline(spark_values, tone) if spark_values else ""
+    return (
+        f"<div class='gp-source-card'>"
+        f"<div class='gp-source-head'>"
+        f"<div class='gp-source-name'><span style='font-size:16px'>{icon}</span>{name}</div>"
+        f"</div>"
+        f"<div class='gp-source-count'>{count}</div>"
+        f"<div class='gp-source-meta'>{meta}</div>"
+        f"{spark_html}"
+        f"</div>"
+    )
 
 
 def heat_strip(cells: list, empty_label: str = "No anomalies detected in this window.") -> str:

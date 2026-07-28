@@ -72,17 +72,78 @@ with c4:
 st.write("")
 
 # --------------------------------------------------------------------------- #
-# Date Picker + anomaly density strip (Mentor Fix #1)
+# Timeline — the only control on this page. Per the whiteboard, L1 ingests
+# continuously and detects on its own; the operator picks a *window* to
+# inspect, not a specific event (event simulation lives on the L2 Explorer
+# page instead).
 # --------------------------------------------------------------------------- #
 st.markdown(
-    theme.section_header("Signal Detection", "Analysis Window",
-                          "Anomaly density across L1-detected macro / geopolitical themes."),
+    theme.section_header("Signal Detection", "Ingestion Timeline",
+                          "Pick a window to inspect — source activity and detected anomalies "
+                          "below both reflect it. L1 ingests continuously; nothing here is a "
+                          "hand-picked event."),
     unsafe_allow_html=True,
 )
-col1, col2 = st.columns([1, 3])
-with col1:
+dcol1, dcol2, _ = st.columns([1, 1, 2])
+with dcol1:
     start_date = st.date_input("Start Date", datetime.now() - timedelta(days=90))
+with dcol2:
     end_date = st.date_input("End Date", datetime.now())
+window_days = max((end_date - start_date).days, 1)
+
+st.write("")
+
+# --------------------------------------------------------------------------- #
+# Data Ingestion — every source L1's collectors pull from, per the whiteboard's
+# "1 · Ingestion & Detection" node. Volumes are illustrative (mock) pending
+# live source-level metrics; they scale with the selected window so the panel
+# still feels tied to the timeline above rather than static.
+# --------------------------------------------------------------------------- #
+st.markdown(
+    theme.section_header("Layer 1", "Data Ingestion",
+                          "Live source feeds L1's collectors poll — GDELT, wire RSS, Reddit, "
+                          "X/Twitter, Polymarket, market data — normalized to one record shape "
+                          "before dedupe and anomaly detection."),
+    unsafe_allow_html=True,
+)
+
+
+def _mock_source_activity(name: str, daily_rate: int, tone: str):
+    """Deterministic-per-source mock volume, scaled by the selected window so
+    it tracks the timeline control instead of sitting static."""
+    rnd = random.Random(hash(name) % 100000)
+    total = int(daily_rate * window_days * rnd.uniform(0.85, 1.15))
+    trend = [max(0, int(daily_rate * rnd.uniform(0.6, 1.4))) for _ in range(7)]
+    mins_ago = rnd.randint(1, 14)
+    return theme.source_card(
+        icon=_SOURCE_ICONS[name], name=name,
+        count=f"{total:,}", meta=f"last record {mins_ago}m ago · ~{daily_rate}/day",
+        tone=tone, spark_values=trend,
+    )
+
+
+_SOURCE_ICONS = {
+    "GDELT News": "📰", "RSS Wire": "📡", "Reddit": "👽",
+    "X / Twitter": "🐦", "Polymarket": "🎲", "Market Data": "📈",
+}
+_SOURCES = [
+    ("GDELT News", 340, "blue"), ("RSS Wire", 210, "blue"),
+    ("Reddit", 480, "amber"), ("X / Twitter", 1250, "amber"),
+    ("Polymarket", 60, "purple"), ("Market Data", 24, "green"),
+]
+src_cols = st.columns(3)
+for i, (name, rate, tone) in enumerate(_SOURCES):
+    with src_cols[i % 3]:
+        st.markdown(_mock_source_activity(name, rate, tone), unsafe_allow_html=True)
+        st.write("")
+
+st.caption(
+    "Counts are illustrative — L1's real collectors (GDELT DOC API, RSS, PRAW, "
+    "Polymarket Gamma API, yfinance) are wired and tested; per-source volume "
+    "metrics like these aren't persisted yet. X/Twitter is mocked end-to-end — "
+    "not an implemented L1 collector."
+)
+st.write("")
 
 # Load mock backtest events for timeline
 @st.cache_data
@@ -98,23 +159,23 @@ def load_events():
 
 events = load_events()
 
-with col2:
-    if events:
-        df = pd.DataFrame(events)
-        df['date'] = pd.to_datetime(df['date'])
-        mask = (df['date'].dt.date >= start_date) & (df['date'].dt.date <= end_date)
-        df_filtered = df.loc[mask]
+st.markdown(theme.kicker("Anomaly density in selected window"), unsafe_allow_html=True)
+if events:
+    df = pd.DataFrame(events)
+    df['date'] = pd.to_datetime(df['date'])
+    mask = (df['date'].dt.date >= start_date) & (df['date'].dt.date <= end_date)
+    df_filtered = df.loc[mask]
 
-        if not df_filtered.empty:
-            cells = [
-                {"title": f"{row['date'].strftime('%Y-%m-%d')}: {row['theme']}", "tone": "red"}
-                for _, row in df_filtered.iterrows()
-            ]
-            st.markdown(theme.heat_strip(cells), unsafe_allow_html=True)
-        else:
-            st.markdown(theme.heat_strip([]), unsafe_allow_html=True)
+    if not df_filtered.empty:
+        cells = [
+            {"title": f"{row['date'].strftime('%Y-%m-%d')}: {row['theme']}", "tone": "red"}
+            for _, row in df_filtered.iterrows()
+        ]
+        st.markdown(theme.heat_strip(cells), unsafe_allow_html=True)
     else:
-        st.markdown(theme.heat_strip([], empty_label="No historical data available."), unsafe_allow_html=True)
+        st.markdown(theme.heat_strip([]), unsafe_allow_html=True)
+else:
+    st.markdown(theme.heat_strip([], empty_label="No historical data available."), unsafe_allow_html=True)
 
 st.write("")
 

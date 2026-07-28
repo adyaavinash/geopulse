@@ -9,6 +9,7 @@ analogues and feed the causal-chain reasoner. House theme applied.
 
 from __future__ import annotations
 
+import random
 from pathlib import Path
 
 import streamlit as st
@@ -180,6 +181,35 @@ def analogue_evidence(etf: str) -> str:
     return " ".join(out)
 
 
+def mock_downstream_signals(c):
+    """Sentiment (Node 6), Quant Signals (Node 7), and Maker-Checker (Node 8)
+    aren't wired to real state yet (see docs/repo_structure_v2_whiteboard.md —
+    only Analogy/Node 4 and Transmission Reasoner/Node 5 are real). Mocked
+    here, deterministically per sector so it doesn't reshuffle on every
+    Streamlit rerun, but shaped exactly like the whiteboard's spec for each
+    node so the demo is honest about what's real vs illustrative."""
+    rnd = random.Random(hash(c.sector) % 100000)
+    want_up = c.direction == "up"
+
+    tone_score = rnd.uniform(-1, 1)
+    if rnd.random() < 0.7:  # mostly agrees with the thesis, not rigged 100%
+        tone_score = abs(tone_score) if want_up else -abs(tone_score)
+    tone_label = "Bullish" if tone_score > 0.15 else "Bearish" if tone_score < -0.15 else "Mixed"
+    tone_tone = "green" if tone_score > 0.15 else "red" if tone_score < -0.15 else "amber"
+
+    quant_delta = rnd.uniform(0.1, 3.4) * (1 if want_up else -1) * (1 if rnd.random() < 0.75 else -1)
+    quant_confirms = (quant_delta >= 0) == want_up
+
+    checker_revise = rnd.random() < 0.2
+    checker_verdict = "revise" if checker_revise else "approve"
+
+    return {
+        "sentiment": {"score": tone_score, "label": tone_label, "tone": tone_tone},
+        "quant": {"delta": quant_delta, "confirms": quant_confirms},
+        "checker": {"verdict": checker_verdict},
+    }
+
+
 def render_chain(c):
     tone = "green" if c.direction == "up" else "red"
     arrow = "▲" if c.direction == "up" else "▼"
@@ -190,7 +220,77 @@ def render_chain(c):
         unsafe_allow_html=True,
     )
     st.progress(c.confidence, text=f"confidence {c.confidence:.0%}")
-    st.write(c.mechanism)
+
+    sig = mock_downstream_signals(c)
+    sentiment, quant, checker = sig["sentiment"], sig["quant"], sig["checker"]
+
+    # ------------------------------------------------------------------ #
+    # The 6 agents from the whiteboard, per sector. Analogy + Transmission
+    # Reasoner are real (this page runs them live); Sentiment, Quant,
+    # Maker-Checker, and Report Tool are mocked — hover each for its
+    # per-sector explanation.
+    # ------------------------------------------------------------------ #
+    top_analogy = max(analogies, key=lambda a: a.similarity) if analogies else None
+    analogy_tip = (
+        f"Retrieved <b>{len(analogies)}</b> historical analogues for this event category. "
+        f"Closest: <b>{top_analogy.title}</b> (sim {top_analogy.similarity:.2f}), "
+        f"{c.etf} moved <b>{top_analogy.measured_returns.get(c.etf, 0):+.1f}%</b>."
+        if top_analogy else "No analogues retrieved for this category."
+    )
+    transmission_tip = (
+        f"Walked <b>{len(c.hops)}</b> cited graph hop(s) via channel <b>{c.channel}</b>. "
+        f"{c.mechanism}"
+    )
+    sentiment_tip = (
+        f"Public tone across news + Reddit chatter for {c.sector}: "
+        f"<b>{sentiment['score']:+.2f}</b> ({sentiment['label']}). Cheap-tier model, "
+        f"mocked — Node 6 isn't wired to a live feed yet."
+    )
+    quant_tip = (
+        f"{c.etf} is <b>{quant['delta']:+.1f}%</b> today. "
+        f"{'Confirms' if quant['confirms'] else 'Contradicts'} the thesis direction. "
+        f"Mocked — Node 7 would pull this from yfinance/Alpha Vantage live."
+    )
+    checker_tip = (
+        "Citation present, analogues support direction, confidence proportionate "
+        "to evidence — <b>approved</b>."
+        if checker["verdict"] == "approve" else
+        "Flagged: confidence looked high relative to a single weak analogue and "
+        "an unaddressed quant contradiction — sent back for <b>revision</b>."
+    )
+    report_tip = (
+        "Renders the approved verdict to the analyst brief and persists it — "
+        "no LLM reasoning of its own, per the whiteboard (Node 9)."
+    )
+
+    chips = [
+        theme.agent_chip("🔎", "Analogy", "retrieved", "blue", analogy_tip),
+        theme.agent_chip("🕸️", "Transmission", "traced", "purple", transmission_tip),
+        theme.agent_chip("💬", "Sentiment", sentiment["label"].lower(), sentiment["tone"], sentiment_tip),
+        theme.agent_chip("📊", "Quant", "confirms" if quant["confirms"] else "contradicts",
+                          "green" if quant["confirms"] else "red", quant_tip),
+        theme.agent_chip("⚖️", "Maker-Checker", checker["verdict"],
+                          "green" if checker["verdict"] == "approve" else "amber", checker_tip),
+        theme.agent_chip("📄", "Report Tool", "published", "muted", report_tip),
+    ]
+    st.markdown(theme.agent_row(chips), unsafe_allow_html=True)
+
+    confirm_clause = "confirming" if quant["confirms"] else "running against"
+    checker_clause = (
+        "Maker-Checker approved the call as evidence-proportionate."
+        if checker["verdict"] == "approve" else
+        "Maker-Checker flagged this for revision — confidence outpaced the evidence gathered."
+    )
+    st.markdown(
+        theme.why_box(
+            "Why the model concluded this",
+            f"{c.mechanism} Public sentiment reads <b>{sentiment['label'].lower()}</b> "
+            f"({sentiment['score']:+.2f}), and {c.etf} is {confirm_clause} the thesis at "
+            f"<b>{quant['delta']:+.1f}%</b> today. {checker_clause}",
+        ),
+        unsafe_allow_html=True,
+    )
+
     ev = analogue_evidence(c.etf)
     if ev:
         st.markdown(
@@ -198,18 +298,25 @@ def render_chain(c):
             f"analogue returns&nbsp;</span>{ev}",
             unsafe_allow_html=True,
         )
-    
-    # Mentor Fix 6: Agent reasoning trace
-    with st.expander("Agent Reasoning & Citations"):
-        st.markdown("**1. Transmission Reasoner Walk**")
+
+    with st.expander("Agent Reasoning & Citations — all 6 nodes"):
+        st.markdown("**1. Analogy Agent (Node 4)** — real, retrieved live above")
+        st.markdown(f"&nbsp;&nbsp;{analogy_tip}", unsafe_allow_html=True)
+        st.markdown("**2. Transmission Reasoner (Node 5)** — real, cited hops")
         for i, h in enumerate(c.hops, 1):
             st.markdown(
                 f"&nbsp;&nbsp;{i}. `{h.frm}` —*{h.relation}*→ `{h.to}`  \n"
                 f"&nbsp;&nbsp;<span style='color:{theme.COLORS['muted']};font-size:0.8rem'>↳ Citation: {h.citation}</span>",
                 unsafe_allow_html=True,
             )
-        st.markdown("**2. Maker-Checker Agent**")
-        st.markdown(f"&nbsp;&nbsp;> Checked historical correlations for `{c.etf}`. No contradictory market forces detected. Prediction validated.")
+        st.markdown("**3. Sentiment Agent (Node 6)** — mocked")
+        st.markdown(f"&nbsp;&nbsp;{sentiment_tip}", unsafe_allow_html=True)
+        st.markdown("**4. Quantitative Signals Agent (Node 7)** — mocked")
+        st.markdown(f"&nbsp;&nbsp;{quant_tip}", unsafe_allow_html=True)
+        st.markdown("**5. Maker-Checker (Node 8)** — mocked")
+        st.markdown(f"&nbsp;&nbsp;{checker_tip}", unsafe_allow_html=True)
+        st.markdown("**6. Report Tool (Node 9)** — mocked")
+        st.markdown(f"&nbsp;&nbsp;{report_tip}", unsafe_allow_html=True)
     st.write("")
 
 
