@@ -29,6 +29,9 @@ from geopulse.l2_orchestration.agents.transmission_reasoner import TransmissionR
 from geopulse.l2_orchestration.llm import get_llm_client
 from geopulse.l2_orchestration.state import EventContext, GraphState
 from geopulse.l2_orchestration.tools.graph_tool import get_graph_tool
+from geopulse.l1_ingestion_detection.settings import Settings
+from geopulse.l1_ingestion_detection.store import SqliteStore
+from geopulse.l2_orchestration.orchestrator import Orchestrator
 
 CONFIG = Path(__file__).resolve().parents[2] / "config"
 
@@ -63,6 +66,8 @@ st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
 st.sidebar.markdown(theme.kicker("Simulate an event"), unsafe_allow_html=True)
 theme_key = st.sidebar.selectbox("Theme (what L1 detected)", list(themes.keys()), label_visibility="collapsed")
 category = themes[theme_key]["category"]
+
+run_clicked = st.sidebar.button("Run Agentic Pipeline (Live)", use_container_width=True)
 
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
 severity = st.sidebar.slider("Severity", 1, 5, themes[theme_key]["severity_default"])
@@ -101,9 +106,34 @@ event = EventContext(
 )
 state = GraphState(event=event)
 
-state.apply(AnalogyAgent(llm=llm).run(state))          # Node 4 → state.analogies
-delta5 = TransmissionReasoner(llm=llm).run(state)      # Node 5 reads analogies
-state.apply(delta5)
+settings = Settings()
+store = SqliteStore(settings)
+orchestrator = Orchestrator(settings, store, agents={
+    "analogy": AnalogyAgent(llm=llm),
+    "transmission_reasoner": TransmissionReasoner(llm=llm)
+})
+
+if run_clicked:
+    with st.spinner("Running Agentic Orchestration Pipeline (Nodes 4-8)..."):
+        state.apply(orchestrator._safe_run(orchestrator.analogy, state))
+        delta5 = orchestrator._safe_run(orchestrator.transmission, state)
+        state.apply(delta5)
+        
+        if state.transmission_chains:
+            state.apply(orchestrator._safe_run(orchestrator.sentiment, state))
+            state.apply(orchestrator._safe_run(orchestrator.quant, state))
+            orchestrator._maker_checker_gate(state)
+        
+        st.session_state.graph_state = state
+        st.session_state.delta5 = delta5
+        st.session_state.last_theme = theme_key
+
+if "graph_state" not in st.session_state:
+    st.info("Click the **Run Agentic Pipeline (Live)** button in the sidebar to begin.")
+    st.stop()
+
+state = st.session_state.graph_state
+delta5 = st.session_state.delta5
 chains = state.transmission_chains
 analogies = state.analogies
 
@@ -181,32 +211,43 @@ def analogue_evidence(etf: str) -> str:
     return " ".join(out)
 
 
-def mock_downstream_signals(c):
-    """Sentiment (Node 6), Quant Signals (Node 7), and Maker-Checker (Node 8)
-    aren't wired to real state yet (see docs/repo_structure_v2_whiteboard.md —
-    only Analogy/Node 4 and Transmission Reasoner/Node 5 are real). Mocked
-    here, deterministically per sector so it doesn't reshuffle on every
-    Streamlit rerun, but shaped exactly like the whiteboard's spec for each
-    node so the demo is honest about what's real vs illustrative."""
-    rnd = random.Random(hash(c.sector) % 100000)
+def get_downstream_signals(state: GraphState, c):
+    sector = c.sector
+    etf = c.etf
     want_up = c.direction == "up"
 
-    tone_score = rnd.uniform(-1, 1)
-    if rnd.random() < 0.7:  # mostly agrees with the thesis, not rigged 100%
-        tone_score = abs(tone_score) if want_up else -abs(tone_score)
-    tone_label = "Bullish" if tone_score > 0.15 else "Bearish" if tone_score < -0.15 else "Mixed"
-    tone_tone = "green" if tone_score > 0.15 else "red" if tone_score < -0.15 else "amber"
+    # Sentiment extraction
+    sentiment_data = state.sentiment or {}
+    sectors_sent = sentiment_data.get("sectors", [])
+    sent_dict = next((s for s in sectors_sent if s["sector"] == sector), None)
+    if sent_dict:
+        tone_score = sent_dict.get("mood_score", 0.0)
+        tone_label = "Bullish" if tone_score > 0.15 else "Bearish" if tone_score < -0.15 else "Mixed"
+        tone_tone = "green" if tone_score > 0.15 else "red" if tone_score < -0.15 else "amber"
+    else:
+        tone_score, tone_label, tone_tone = 0.0, "Unknown", "muted"
 
-    quant_delta = rnd.uniform(0.1, 3.4) * (1 if want_up else -1) * (1 if rnd.random() < 0.75 else -1)
-    quant_confirms = (quant_delta >= 0) == want_up
+    # Quant extraction
+    quant_data = state.quant_signals or {}
+    sectors_quant = quant_data.get("sectors", [])
+    quant_dict = next((s for s in sectors_quant if s.get("etf") == etf), None)
+    if quant_dict:
+        quant_delta = quant_dict.get("pct_move", 0.0)
+        quant_confirms = (quant_delta >= 0) == want_up
+    else:
+        quant_delta, quant_confirms = 0.0, False
 
-    checker_revise = rnd.random() < 0.2
-    checker_verdict = "revise" if checker_revise else "approve"
+    # Maker Checker extraction
+    checker_verdict = (state.checker_review or {}).get("verdict", "pending")
+    verdict_data = state.verdict or {}
+    verdict_calls = verdict_data.get("calls", [])
+    final_call = next((v for v in verdict_calls if v["sector"] == sector), None)
 
     return {
         "sentiment": {"score": tone_score, "label": tone_label, "tone": tone_tone},
         "quant": {"delta": quant_delta, "confirms": quant_confirms},
         "checker": {"verdict": checker_verdict},
+        "final_rationale": final_call["rationale"] if final_call else "Pending review."
     }
 
 
@@ -221,7 +262,7 @@ def render_chain(c):
     )
     st.progress(c.confidence, text=f"confidence {c.confidence:.0%}")
 
-    sig = mock_downstream_signals(c)
+    sig = get_downstream_signals(state, c)
     sentiment, quant, checker = sig["sentiment"], sig["quant"], sig["checker"]
 
     # ------------------------------------------------------------------ #
@@ -277,14 +318,12 @@ def render_chain(c):
     checker_clause = (
         "Maker-Checker approved the call as evidence-proportionate."
         if checker["verdict"] == "approve" else
-        "Maker-Checker flagged this for revision — confidence outpaced the evidence gathered."
+        f"Maker-Checker flagged this for {checker['verdict']}."
     )
     st.markdown(
         theme.why_box(
             "Why the model concluded this",
-            f"{c.mechanism} Public sentiment reads <b>{sentiment['label'].lower()}</b> "
-            f"({sentiment['score']:+.2f}), and {c.etf} is {confirm_clause} the thesis at "
-            f"<b>{quant['delta']:+.1f}%</b> today. {checker_clause}",
+            f"{sig['final_rationale']}"
         ),
         unsafe_allow_html=True,
     )
@@ -302,9 +341,12 @@ def render_chain(c):
         st.markdown(f"&nbsp;&nbsp;{analogy_tip}", unsafe_allow_html=True)
         st.markdown("**2. Transmission Reasoner (Node 5)** — real, cited hops")
         for i, h in enumerate(c.hops, 1):
+            frm_clean = h.frm.replace('_', ' ').title()
+            to_clean = h.to.replace('_', ' ').title()
+            source_file = h.citation.split(':')[0] if ':' in h.citation else h.citation
             st.markdown(
-                f"&nbsp;&nbsp;{i}. `{h.frm}` —*{h.relation}*→ `{h.to}`  \n"
-                f"&nbsp;&nbsp;<span style='color:{theme.COLORS['muted']};font-size:0.8rem'>↳ Citation: {h.citation}</span>",
+                f"&nbsp;&nbsp;{i}. **{frm_clean}** —*{h.relation}*→ **{to_clean}**  \n"
+                f"&nbsp;&nbsp;<span style='color:{theme.COLORS['muted']};font-size:0.8rem'>↳ Source: {source_file}</span>",
                 unsafe_allow_html=True,
             )
         st.markdown("**3. Sentiment Agent (Node 6)**")
