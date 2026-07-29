@@ -238,7 +238,10 @@ def get_downstream_signals(state: GraphState, c):
         quant_delta, quant_confirms = 0.0, False
 
     # Maker Checker extraction
-    checker_verdict = (state.checker_review or {}).get("verdict", "pending")
+    checker_review = state.checker_review or {}
+    checker_verdict = checker_review.get("verdict", "pending")
+    checker_critique = checker_review.get("critique", "")
+    
     verdict_data = state.verdict or {}
     verdict_calls = verdict_data.get("calls", [])
     final_call = next((v for v in verdict_calls if v["sector"] == sector), None)
@@ -246,8 +249,8 @@ def get_downstream_signals(state: GraphState, c):
     return {
         "sentiment": {"score": tone_score, "label": tone_label, "tone": tone_tone},
         "quant": {"delta": quant_delta, "confirms": quant_confirms},
-        "checker": {"verdict": checker_verdict},
-        "final_rationale": final_call["rationale"] if final_call else "Pending review."
+        "checker": {"verdict": checker_verdict, "critique": checker_critique},
+        "final_rationale": final_call["rationale"] if final_call else None
     }
 
 
@@ -290,13 +293,17 @@ def render_chain(c):
         f"{c.etf} is <b>{quant['delta']:+.1f}%</b> today. "
         f"{'Confirms' if quant['confirms'] else 'Contradicts'} the thesis direction. "
     )
-    checker_tip = (
-        "Citation present, analogues support direction, confidence proportionate "
-        "to evidence — <b>approved</b>."
-        if checker["verdict"] == "approve" else
-        "Flagged: confidence looked high relative to a single weak analogue and "
-        "an unaddressed quant contradiction — sent back for <b>revision</b>."
-    )
+    if checker["critique"]:
+        checker_tip = checker["critique"]
+    else:
+        checker_tip = (
+            "Citation present, analogues support direction, confidence proportionate "
+            "to evidence — <b>approved</b>."
+            if checker["verdict"] == "approve" else
+            "Flagged: confidence looked high relative to a single weak analogue and "
+            "an unaddressed quant contradiction — sent back for <b>revision</b>."
+        )
+
     report_tip = (
         "Renders the approved verdict to the analyst brief and persists it — "
         "no LLM reasoning of its own, per the whiteboard (Node 9)."
@@ -314,16 +321,22 @@ def render_chain(c):
     ]
     st.markdown(theme.agent_row(chips), unsafe_allow_html=True)
 
-    confirm_clause = "confirming" if quant["confirms"] else "running against"
-    checker_clause = (
-        "Maker-Checker approved the call as evidence-proportionate."
-        if checker["verdict"] == "approve" else
-        f"Maker-Checker flagged this for {checker['verdict']}."
-    )
+    rationale_text = sig["final_rationale"]
+    box_title = "Why the model concluded this"
+    if not rationale_text:
+        if checker["verdict"] == "escalate":
+             rationale_text = f"<b>⚠️ ESCALATED BY MAKER-CHECKER (phi4-mini):</b> {checker['critique']}"
+             box_title = "Maker-Checker Intercept"
+        elif checker["verdict"] == "revise":
+             rationale_text = f"<b>⚠️ REVISING:</b> {checker['critique']}"
+             box_title = "Maker-Checker Intercept"
+        else:
+             rationale_text = "Pending review."
+             
     st.markdown(
         theme.why_box(
-            "Why the model concluded this",
-            f"{sig['final_rationale']}"
+            box_title,
+            rationale_text
         ),
         unsafe_allow_html=True,
     )
