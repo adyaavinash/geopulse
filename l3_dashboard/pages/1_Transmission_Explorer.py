@@ -241,6 +241,10 @@ def get_downstream_signals(state: GraphState, c):
     checker_review = state.checker_review or {}
     checker_verdict = checker_review.get("verdict", "pending")
     checker_critique = checker_review.get("critique", "")
+    checker_objections = checker_review.get("objections", [])
+    
+    # Try to find a sector-specific objection
+    sector_objection = next((obj for obj in checker_objections if sector.lower() in obj.lower()), None)
     
     verdict_data = state.verdict or {}
     verdict_calls = verdict_data.get("calls", [])
@@ -249,7 +253,7 @@ def get_downstream_signals(state: GraphState, c):
     return {
         "sentiment": {"score": tone_score, "label": tone_label, "tone": tone_tone},
         "quant": {"delta": quant_delta, "confirms": quant_confirms},
-        "checker": {"verdict": checker_verdict, "critique": checker_critique},
+        "checker": {"verdict": checker_verdict, "critique": checker_critique, "sector_objection": sector_objection},
         "final_rationale": final_call["rationale"] if final_call else None
     }
 
@@ -293,7 +297,9 @@ def render_chain(c):
         f"{c.etf} is <b>{quant['delta']:+.1f}%</b> today. "
         f"{'Confirms' if quant['confirms'] else 'Contradicts'} the thesis direction. "
     )
-    if checker["critique"]:
+    if checker["sector_objection"]:
+        checker_tip = f"<b>Specific Objection:</b> {checker['sector_objection']}"
+    elif checker["critique"]:
         checker_tip = checker["critique"]
     else:
         checker_tip = (
@@ -324,11 +330,12 @@ def render_chain(c):
     rationale_text = sig["final_rationale"]
     box_title = "Why the model concluded this"
     if not rationale_text:
+        display_text = checker['sector_objection'] if checker['sector_objection'] else checker['critique']
         if checker["verdict"] == "escalate":
-             rationale_text = f"<b>⚠️ ESCALATED BY MAKER-CHECKER (phi4-mini):</b> {checker['critique']}"
+             rationale_text = f"<b>⚠️ ESCALATED BY MAKER-CHECKER (phi4-mini):</b> {display_text}"
              box_title = "Maker-Checker Intercept"
         elif checker["verdict"] == "revise":
-             rationale_text = f"<b>⚠️ REVISING:</b> {checker['critique']}"
+             rationale_text = f"<b>⚠️ REVISING:</b> {display_text}"
              box_title = "Maker-Checker Intercept"
         else:
              rationale_text = "Pending review."
